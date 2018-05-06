@@ -43,13 +43,13 @@
 
 		this.obstacles = [];
 
-		this.activated = false; // Whether the easter egg has been activated.
-		this.playing = false; // Whether the game is currently in play state.
-		this.crashed = false;
-		this.paused = false;
-		this.inverted = false;
-		this.invertTimer = 0;
-		this.resizeTimerId_ = null;
+        this.activated = false; // Whether the easter egg has been activated.
+        this.playing = false; // Whether the game is currently in play state.
+        this.crashed = false;
+        this.paused = false;
+        this.inverted = true;
+        this.invertTimer = 0;
+        this.resizeTimerId_ = null;
 
 		this.playCount = 0;
 
@@ -564,12 +564,18 @@
 				if (!collision) {
 					this.distanceRan += this.currentSpeed * deltaTime / this.msPerFrame;
 
-					if (this.currentSpeed < this.config.MAX_SPEED) {
-						this.currentSpeed += this.config.ACCELERATION;
-					}
-				} else {
-					this.gameOver();
-				}
+                    if (this.currentSpeed < this.config.MAX_SPEED) {
+                        this.currentSpeed += this.config.ACCELERATION;
+                    }
+                } else {
+                    if(this.inverted){
+                        this.playSound(this.soundFx.SCORE);
+                        this.distanceRan += 50;
+                        this.horizon.updateObstacles(0, this.currentSpeed, true, this.inverted);
+                    } else {
+                        this.gameOver();
+                    }
+                }
 
 				var playAchievementSound = this.distanceMeter.update(deltaTime,
 					Math.ceil(this.distanceRan));
@@ -1267,32 +1273,34 @@
 
 //******************************************************************************
 
-	/**
-	 * Obstacle.
-	 * @param {HTMLCanvasCtx} canvasCtx
-	 * @param {Obstacle.type} type
-	 * @param {Object} spritePos Obstacle position in sprite.
-	 * @param {Object} dimensions
-	 * @param {number} gapCoefficient Mutipler in determining the gap.
-	 * @param {number} speed
-	 * @param {number} opt_xOffset
-	 */
-	function Obstacle(canvasCtx, type, spriteImgPos, dimensions,
-					  gapCoefficient, speed, opt_xOffset) {
+    /**
+    * Obstacle.
+    * @param {HTMLCanvasCtx} canvasCtx
+    * @param {Obstacle.type} type
+    * @param {Object} spritePos Obstacle position in sprite.
+    * @param {Object} dimensions
+    * @param {number} gapCoefficient Mutipler in determining the gap.
+    * @param {number} speed
+    * @param {number} opt_xOffset
+    * @param nightMode
+    */
+    function Obstacle(canvasCtx, type, spriteImgPos, dimensions,
+        gapCoefficient, speed, opt_xOffset, nightMode) {
 
-		this.canvasCtx = canvasCtx;
-		this.spritePos = spriteImgPos;
-		this.typeConfig = type;
-		this.gapCoefficient = gapCoefficient;
-		this.size = getRandomNum(1, Obstacle.MAX_OBSTACLE_LENGTH);
-		this.dimensions = dimensions;
-		this.remove = false;
-		this.xPos = dimensions.WIDTH + (opt_xOffset || 0);
-		this.yPos = 0;
-		this.width = 0;
-		this.collisionBoxes = [];
-		this.gap = 0;
-		this.speedOffset = 0;
+        this.canvasCtx = canvasCtx;
+        this.spritePos = spriteImgPos;
+        this.nightMode = !!nightMode;
+        this.typeConfig = type;
+        this.gapCoefficient = gapCoefficient;
+        this.size = getRandomNum(1, Obstacle.MAX_OBSTACLE_LENGTH);
+        this.dimensions = dimensions;
+        this.remove = false;
+        this.xPos = dimensions.WIDTH + (opt_xOffset || 0);
+        this.yPos = 0;
+        this.width = 0;
+        this.collisionBoxes = [];
+        this.gap = 0;
+        this.speedOffset = 0;
 
 		// For animated obstacles.
 		this.currentFrame = 0;
@@ -1329,14 +1337,17 @@
 
 				this.width = this.typeConfig.width * this.size;
 
-				// Check if obstacle can be positioned at various heights.
-				if (Array.isArray(this.typeConfig.yPos)) {
-					var yPosConfig = IS_MOBILE ? this.typeConfig.yPosMobile :
-						this.typeConfig.yPos;
-					this.yPos = yPosConfig[getRandomNum(0, yPosConfig.length - 1)];
-				} else {
-					this.yPos = this.typeConfig.yPos;
-				}
+                // Check if obstacle can be positioned at various heights.
+                if (this.nightMode) {
+                    var randY = [15, 30, 50];
+                    this.yPos = randY[getRandomNum(0, 2)];
+                } else if (Array.isArray(this.typeConfig.yPos)) {
+                    var yPosConfig = IS_MOBILE ? this.typeConfig.yPosMobile :
+                        this.typeConfig.yPos;
+                    this.yPos = yPosConfig[getRandomNum(0, yPosConfig.length - 1)];
+                } else {
+                    this.yPos = this.typeConfig.yPos;
+                }
 
 				this.draw();
 
@@ -1952,9 +1963,9 @@
 		// Flash duration in milliseconds.
 		FLASH_DURATION: 1000 / 4,
 
-		// Flash iterations for achievement animation.
-		FLASH_ITERATIONS: 3,
-	};
+        // Flash iterations for achievement animation.
+        FLASH_ITERATIONS: 1,
+    };
 
 
 	DistanceMeter.prototype = {
@@ -2086,7 +2097,7 @@
 					if (this.flashTimer < this.config.FLASH_DURATION) {
 						paint = false;
 					} else if (this.flashTimer >
-						this.config.FLASH_DURATION * 2) {
+						this.config.FLASH_DURATION * 1) {
 						this.flashTimer = 0;
 						this.flashIterations++;
 					}
@@ -2595,10 +2606,10 @@
 			this.nightMode.update(showNightMode);
 			this.updateClouds(deltaTime, currentSpeed);
 
-			if (updateObstacles) {
-				this.updateObstacles(deltaTime, currentSpeed);
-			}
-		},
+            if (updateObstacles) {
+                this.updateObstacles(deltaTime, currentSpeed, false, showNightMode);
+            }
+        },
 
 		/**
 		 * Update the cloud positions.
@@ -2632,65 +2643,70 @@
 			}
 		},
 
-		/**
-		 * Update the obstacle positions.
-		 * @param {number} deltaTime
-		 * @param {number} currentSpeed
-		 */
-		updateObstacles: function (deltaTime, currentSpeed) {
-			// Obstacles, move to Horizon layer.
-			var updatedObstacles = this.obstacles.slice(0);
+        /**
+         * Update the obstacle positions.
+         * @param {number} deltaTime
+         * @param {number} currentSpeed
+         */
+        updateObstacles: function (deltaTime, currentSpeed) {
+            // Obstacles, move to Horizon layer.
+            var updatedObstacles = this.obstacles.slice(0);
 
 			for (var i = 0; i < this.obstacles.length; i++) {
 				var obstacle = this.obstacles[i];
 				obstacle.update(deltaTime, currentSpeed);
 
-				// Clean up existing obstacles.
-				if (obstacle.remove) {
-					updatedObstacles.shift();
-				}
-			}
-			this.obstacles = updatedObstacles;
+                // Clean up existing obstacles.
+                if (obstacle.remove) {
+                    updatedObstacles.shift();
+                }
+            }
+            if (forceShift) {
+                updatedObstacles.shift();
+            }
+
+            this.obstacles = updatedObstacles;
 
 			if (this.obstacles.length > 0) {
 				var lastObstacle = this.obstacles[this.obstacles.length - 1];
 
-				if (lastObstacle && !lastObstacle.followingObstacleCreated &&
-					lastObstacle.isVisible() &&
-					(lastObstacle.xPos + lastObstacle.width + lastObstacle.gap) <
-					this.dimensions.WIDTH) {
-					this.addNewObstacle(currentSpeed);
-					lastObstacle.followingObstacleCreated = true;
-				}
-			} else {
-				// Create new obstacles.
-				this.addNewObstacle(currentSpeed);
-			}
-		},
+                if (lastObstacle && !lastObstacle.followingObstacleCreated &&
+                    lastObstacle.isVisible() &&
+                    (lastObstacle.xPos + lastObstacle.width + lastObstacle.gap) <
+                    this.dimensions.WIDTH) {
+                    this.addNewObstacle(currentSpeed, isInverted);
+                    lastObstacle.followingObstacleCreated = true;
+                }
+            } else {
+                // Create new obstacles.
+                this.addNewObstacle(currentSpeed, isInverted);
+            }
+        },
 
 		removeFirstObstacle: function () {
 			this.obstacles.shift();
 		},
 
-		/**
-		 * Add a new obstacle.
-		 * @param {number} currentSpeed
-		 */
-		addNewObstacle: function (currentSpeed) {
-			var obstacleTypeIndex = getRandomNum(0, Obstacle.types.length - 1);
-			var obstacleType = Obstacle.types[obstacleTypeIndex];
+      /**
+       * Add a new obstacle.
+       * @param {number} currentSpeed
+       * @param isInverted
+       */
+        addNewObstacle: function (currentSpeed, isInverted) {
+            var obstacleTypeIndex = getRandomNum(0, Obstacle.types.length - 1);
+            var obstacleType = Obstacle.types[obstacleTypeIndex];
 
-			// Check for multiples of the same type of obstacle.
-			// Also check obstacle is available at current speed.
-			if (this.duplicateObstacleCheck(obstacleType.type) ||
-				currentSpeed < obstacleType.minSpeed) {
-				this.addNewObstacle(currentSpeed);
-			} else {
-				var obstacleSpritePos = this.spritePos[obstacleType.type];
+            // Check for multiples of the same type of obstacle.
+            // Also check obstacle is available at current speed.
+            if (this.duplicateObstacleCheck(obstacleType.type) ||
+                currentSpeed < obstacleType.minSpeed) {
+                this.addNewObstacle(currentSpeed, isInverted);
+            } else {
+                var obstacleSpritePos = this.spritePos[obstacleType.type];
 
-				this.obstacles.push(new Obstacle(this.canvasCtx, obstacleType,
-					obstacleSpritePos, this.dimensions,
-					this.gapCoefficient, currentSpeed, obstacleType.width));
+                this.obstacles.push(new Obstacle(this.canvasCtx, obstacleType,
+                    obstacleSpritePos, this.dimensions,
+                    this.gapCoefficient, currentSpeed, obstacleType.width, !!isInverted));
 
 				this.obstacleHistory.unshift(obstacleType.type);
 
