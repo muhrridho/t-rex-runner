@@ -1,7 +1,6 @@
 // Copyright (c) 2014 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
 (function () {
 	'use strict';
 
@@ -118,7 +117,7 @@
 		GRAVITY: 0.6,
 		INITIAL_JUMP_VELOCITY: 12,
 		INVERT_FADE_DURATION: 8000,
-		INVERT_DISTANCE: 15000,
+		INVERT_DISTANCE: 7500,
 		MAX_BLINK_COUNT: 3,
 		MAX_CLOUDS: 6,
 		MAX_OBSTACLE_LENGTH: 3,
@@ -2769,7 +2768,7 @@
 
 
 function onDocumentLoad() {
-    new Runner('.interstitial-wrapper');
+	new Runner('.interstitial-wrapper');
 }
 
 document.addEventListener('DOMContentLoaded', onDocumentLoad);
