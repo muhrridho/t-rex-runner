@@ -117,7 +117,7 @@
 		GRAVITY: 0.6,
 		INITIAL_JUMP_VELOCITY: 12,
 		INVERT_FADE_DURATION: 8000,
-		INVERT_DISTANCE: 7500,
+		INVERT_DISTANCE: 2000,
 		MAX_BLINK_COUNT: 3,
 		MAX_CLOUDS: 6,
 		MAX_OBSTACLE_LENGTH: 3,
@@ -489,6 +489,7 @@
 				}
 				this.playing = true;
 				this.activated = true;
+				console.log("playIntro")
 			} else if (this.crashed) {
 				this.restart();
 			}
@@ -913,6 +914,7 @@
 		 * @param {boolean} Whether to reset colors.
 		 */
 		invert: function (reset) {
+			console.log("inverted " + reset);
 			if (reset) {
 				document.body.classList.toggle(Runner.classes.INVERTED, false);
 				this.invertTimer = 0;
@@ -1585,7 +1587,7 @@
 		MIN_JUMP_HEIGHT: 30,
 		SPEED_DROP_COEFFICIENT: 3,
 		SPRITE_WIDTH: 262,
-		START_X_POS: 50,
+		START_X_POS: 100,
 		WIDTH: 44,
 		WIDTH_DUCK: 59,
 	};
@@ -1763,6 +1765,7 @@
 					this.xPos++;
 				}
 				// Standing / running
+				console.log(this.xPos + " " + this.yPos);
 				this.canvasCtx.drawImage(Runner.imageSprite, sourceX, sourceY,
 					sourceWidth, sourceHeight,
 					this.xPos, this.yPos,
