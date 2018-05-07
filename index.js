@@ -489,7 +489,6 @@
 				}
 				this.playing = true;
 				this.activated = true;
-				console.log("playIntro")
 			} else if (this.crashed) {
 				this.restart();
 			}
@@ -914,7 +913,6 @@
 		 * @param {boolean} Whether to reset colors.
 		 */
 		invert: function (reset) {
-			console.log("inverted " + reset);
 			if (reset) {
 				document.body.classList.toggle(Runner.classes.INVERTED, false);
 				this.invertTimer = 0;
@@ -1765,7 +1763,6 @@
 					this.xPos++;
 				}
 				// Standing / running
-				console.log(this.xPos + " " + this.yPos);
 				this.canvasCtx.drawImage(Runner.imageSprite, sourceX, sourceY,
 					sourceWidth, sourceHeight,
 					this.xPos, this.yPos,
