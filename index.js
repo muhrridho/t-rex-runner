@@ -107,7 +107,7 @@
 	var ARCADE_MODE_URL = 'chrome://dino/';
 
 	/** @const */
-	var IS_TOUCH_ENABLED = 'ontouchstart' in window;
+	var IS_TOUCH_ENABLED = true;
 
 	/**
 	 * Default game configuration.
@@ -124,7 +124,7 @@
 		GRAVITY: 0.6,
 		INITIAL_JUMP_VELOCITY: 12,
 		INVERT_FADE_DURATION: 8000,
-		INVERT_DISTANCE: 2000,
+		INVERT_DISTANCE: 1000,
 		MAX_BLINK_COUNT: 3,
 		MAX_CLOUDS: 6,
 		MAX_OBSTACLE_LENGTH: 3,
@@ -792,6 +792,8 @@
 			vibrate(200);
 
 			this.stop();
+
+			document.getElementById('to-highscore').classList.toggle("hidden", false);
 			this.crashed = true;
 			this.distanceMeter.achievement = false;
 
@@ -817,7 +819,7 @@
 						xhr = new XMLHttpRequest();
 
 					xhr.open('GET', '/bukapuasa/' + this.username + '.json?highscore=' + to_server);
-					xhr.onload = function() {
+					xhr.onload = function () {
 
 					};
 					xhr.send();
@@ -847,6 +849,7 @@
 
 		restart: function () {
 			if (!this.raqId) {
+				document.getElementById('to-highscore').classList.toggle("hidden", true);
 				this.playCount++;
 				this.runningTime = 0;
 				this.playing = true;
