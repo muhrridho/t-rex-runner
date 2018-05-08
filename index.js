@@ -18,6 +18,13 @@
 		}
 		Runner.instance_ = this;
 
+		var user = document.getElementById('user');
+		console.log(user.attributes["data-highscore"].value);
+		this.highestScore = 0;
+
+		if (user.attributes["data-highscore"].value)
+			this.highestScore = parseInt(user.attributes["data-highscore"].value) / DistanceMeter.config.COEFFICIENT;
+
 		this.outerContainerEl = document.querySelector(outerContainerId);
 		this.containerEl = null;
 		this.snackbarEl = null;
@@ -33,8 +40,6 @@
 
 		this.distanceMeter = null;
 		this.distanceRan = 0;
-
-		this.highestScore = 0;
 
 		this.time = 0;
 		this.runningTime = 0;
@@ -380,6 +385,7 @@
 			// Distance meter
 			this.distanceMeter = new DistanceMeter(this.canvas,
 				this.spriteDef.TEXT_SPRITE, this.dimensions.WIDTH);
+			this.distanceMeter.setHighScore(this.highestScore);
 
 			// Draw t-rex
 			this.tRex = new Trex(this.canvas, this.spriteDef.TREX);
@@ -560,7 +566,7 @@
 
 				// Check for collisions.
 				var collision = hasObstacles &&
-					checkForCollision(this.horizon.obstacles[0], this.tRex, this.canvasCtx);
+					checkForCollision(this.horizon.obstacles[0], this.tRex);
 
 				if (!collision) {
 					this.distanceRan += this.currentSpeed * deltaTime / this.msPerFrame;
@@ -802,6 +808,7 @@
 				this.highestScore = Math.ceil(this.distanceRan);
 				this.distanceMeter.setHighScore(this.highestScore);
 
+				var to_server = this.highestScore * DistanceMeter.COEFFICIENT
 				// todo: Push highscore to server here
 			}
 
@@ -1157,7 +1164,8 @@
 			tRex.xPos + 1,
 			tRex.yPos + 1,
 			tRex.config.WIDTH - 2,
-			tRex.config.HEIGHT - 2);
+			tRex.config.HEIGHT - 2,
+			"maroon");
 
 		var obstacleBox = new CollisionBox(
 			obstacle.xPos + 1,
@@ -1212,7 +1220,9 @@
 			box.x + adjustment.x,
 			box.y + adjustment.y,
 			box.width,
-			box.height);
+			box.height,
+			box.color
+		);
 	};
 
 
@@ -1221,10 +1231,10 @@
 	 */
 	function drawCollisionBoxes(canvasCtx, tRexBox, obstacleBox) {
 		canvasCtx.save();
-		canvasCtx.strokeStyle = '#f00';
+		canvasCtx.strokeStyle = tRexBox.color;
 		canvasCtx.strokeRect(tRexBox.x, tRexBox.y, tRexBox.width, tRexBox.height);
 
-		canvasCtx.strokeStyle = '#0f0';
+		canvasCtx.strokeStyle = obstacleBox.color;
 		canvasCtx.strokeRect(obstacleBox.x, obstacleBox.y,
 			obstacleBox.width, obstacleBox.height);
 		canvasCtx.restore();
@@ -1265,12 +1275,14 @@
 	 * @param {number} y Y Position.
 	 * @param {number} w Width.
 	 * @param {number} h Height.
+	 * @param color
 	 */
-	function CollisionBox(x, y, w, h) {
+	function CollisionBox(x, y, w, h, color) {
 		this.x = x;
 		this.y = y;
 		this.width = w;
 		this.height = h;
+		this.color = !!color ? color : "#0f0";
 	};
 
 
@@ -1280,7 +1292,7 @@
 	 * Obstacle.
 	 * @param {HTMLCanvasCtx} canvasCtx
 	 * @param {Obstacle.type} type
-	 * @param {Object} spritePos Obstacle position in sprite.
+	 * @param spriteImgPos
 	 * @param {Object} dimensions
 	 * @param {number} gapCoefficient Mutipler in determining the gap.
 	 * @param {number} speed
@@ -1331,12 +1343,13 @@
 			 * @param {number} speed
 			 */
 			init: function (speed) {
-				this.cloneCollisionBoxes();
-
 				// Only allow sizing if we're at the right speed.
+				// console.log(this.size, this.typeConfig.multipleSpeed > speed, speed, this.typeConfig.multipleSpeed)
 				if (this.size > 1 && this.typeConfig.multipleSpeed > speed) {
 					this.size = 1;
 				}
+
+				this.cloneCollisionBoxes();
 
 				this.width = this.typeConfig.width * this.size;
 
@@ -1362,11 +1375,12 @@
 				//   | | 1 | |   | |  2  | |   | |   3   | |
 				//   |_|___|_|   |_|_____|_|   |_|_______|_|
 				//
-				if (this.size > 1) {
-					this.collisionBoxes[1].width = this.width - this.collisionBoxes[0].width -
-						this.collisionBoxes[2].width;
-					this.collisionBoxes[2].x = this.width - this.collisionBoxes[2].width;
-				}
+
+				// if (this.size > 1) {
+				// 	this.collisionBoxes[1].width = this.width - this.collisionBoxes[0].width -
+				// 		this.collisionBoxes[2].width;
+				// 	this.collisionBoxes[2].x = this.width - this.collisionBoxes[2].width;
+				// }
 
 				// For obstacles that go at a different speed from the horizon.
 				if (this.typeConfig.speedOffset) {
@@ -1464,11 +1478,18 @@
 			cloneCollisionBoxes: function () {
 				var collisionBoxes = this.typeConfig.collisionBoxes;
 
-				for (var i = collisionBoxes.length - 1; i >= 0; i--) {
-					this.collisionBoxes[i] = new CollisionBox(collisionBoxes[i].x,
-						collisionBoxes[i].y, collisionBoxes[i].width,
-						collisionBoxes[i].height);
+				// console.log(collisionBoxes, this.size)
+				for (var i = collisionBoxes[this.size - 1].length - 1; i >= 0; i--) {
+					var collisionBox = collisionBoxes[this.size - 1][i];
+					this.collisionBoxes[i] = new CollisionBox(collisionBox.x,
+						collisionBox.y, collisionBox.width,
+						collisionBox.height);
 				}
+				// for (var i = collisionBoxes.length - 1; i >= 0; i--) {
+				// 	this.collisionBoxes[i] = new CollisionBox(collisionBoxes[i].x,
+				// 		collisionBoxes[i].y, collisionBoxes[i].width,
+				// 		collisionBoxes[i].height);
+				// }
 			},
 		};
 
@@ -1490,9 +1511,15 @@
 			minGap: 120,
 			minSpeed: 0,
 			collisionBoxes: [
-				new CollisionBox(0, 7, 5, 27),
-				new CollisionBox(4, 0, 6, 34),
-				new CollisionBox(10, 4, 7, 14),
+				[
+					new CollisionBox(1, 7, 13, 19),
+				],
+				[
+					new CollisionBox(0, 2, 31, 20)
+				],
+				[
+					new CollisionBox(0, 4, 43, 20),
+				],
 			],
 		},
 		{
@@ -1504,9 +1531,17 @@
 			minGap: 120,
 			minSpeed: 0,
 			collisionBoxes: [
-				new CollisionBox(0, 12, 7, 38),
-				new CollisionBox(8, 0, 7, 49),
-				new CollisionBox(13, 10, 10, 38),
+				[
+					new CollisionBox(0, 11, 24, 18),
+				],
+				[
+					new CollisionBox(1, 2, 43, 30),
+				],
+				[
+					new CollisionBox(0, 8, 27, 21),
+					new CollisionBox(27, 2, 17, 31),
+					new CollisionBox(44, 11, 28, 23),
+				],
 			],
 		},
 		{
@@ -1519,11 +1554,9 @@
 			minSpeed: 8.5,
 			minGap: 150,
 			collisionBoxes: [
-				new CollisionBox(15, 15, 16, 5),
-				new CollisionBox(18, 21, 24, 6),
-				new CollisionBox(2, 14, 4, 3),
-				new CollisionBox(6, 10, 4, 7),
-				new CollisionBox(10, 8, 6, 9),
+				[
+					new CollisionBox(0, 9, 26, 20),
+				],
 			],
 			numFrames: 2,
 			frameRate: 1000 / 6,
@@ -1584,9 +1617,8 @@
 		MAX_JUMP_HEIGHT: 30,
 		MIN_JUMP_HEIGHT: 30,
 		SPEED_DROP_COEFFICIENT: 3,
-		SPRITE_WIDTH: 262,
 		START_X_POS: 100,
-		WIDTH: 44,
+		WIDTH: 37,
 		WIDTH_DUCK: 59,
 	};
 
@@ -1600,12 +1632,12 @@
 			new CollisionBox(1, 18, 55, 25),
 		],
 		RUNNING: [
-			new CollisionBox(22, 0, 17, 16),
-			new CollisionBox(1, 18, 30, 9),
-			new CollisionBox(10, 35, 14, 8),
-			new CollisionBox(1, 24, 29, 5),
-			new CollisionBox(5, 30, 21, 4),
-			new CollisionBox(9, 34, 15, 4),
+			new CollisionBox(2, 1, 22, 22, "black"),
+			new CollisionBox(3, 20, 30, 10, "black"),
+			new CollisionBox(7, 30, 16, 16, "black"),
+			// new CollisionBox(1, 24, 29, 5, "green"),
+			// new CollisionBox(5, 30, 21, 4, "blue"),
+			// new CollisionBox(9, 34, 15, 4, "cyan"),
 		],
 	};
 
@@ -1635,23 +1667,23 @@
 	 */
 	Trex.animFrames = {
 		WAITING: {
-			frames: [44, 0],
+			frames: [47, 3],
 			msPerFrame: 1000 / 3,
 		},
 		RUNNING: {
-			frames: [88, 132],
+			frames: [91, 135],
 			msPerFrame: 1000 / 12,
 		},
 		CRASHED: {
-			frames: [220],
+			frames: [223],
 			msPerFrame: 1000 / 60,
 		},
 		JUMPING: {
-			frames: [0],
+			frames: [3],
 			msPerFrame: 1000 / 60,
 		},
 		DUCKING: {
-			frames: [262, 321],
+			frames: [265, 324],
 			msPerFrame: 1000 / 8,
 		},
 	};
@@ -2040,7 +2072,7 @@
 			this.canvasCtx.drawImage(this.image, sourceX, sourceY,
 				sourceWidth, sourceHeight,
 				targetX, targetY,
-				targetWidth, targetHeight,
+				targetWidth, targetHeight
 			);
 
 			this.canvasCtx.restore();
