@@ -21,6 +21,20 @@ html, body {
 	position: relative;
 }
 
+#highscore {
+	padding-top: 40px;
+}
+
+#main-content {
+	max-height: 80%;
+}
+
+#disclaimer {
+	position: absolute;
+	top: 75%;
+	padding-top: 20px;
+}
+
 .hidden {
 	display: none;
 }

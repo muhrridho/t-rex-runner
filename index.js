@@ -17,13 +17,15 @@
 			return Runner.instance_;
 		}
 		Runner.instance_ = this;
-
 		var user = document.getElementById('user');
-		console.log(user.attributes["data-highscore"].value);
 		this.highestScore = 0;
+		this.username = null;
 
-		if (user.attributes["data-highscore"].value)
-			this.highestScore = parseInt(user.attributes["data-highscore"].value) / DistanceMeter.config.COEFFICIENT;
+		if (user) {
+			if (user.attributes["data-highscore"])
+				this.highestScore = parseInt(user.attributes["data-highscore"].value) / DistanceMeter.config.COEFFICIENT;
+			this.username = user.attributes["data-username"].value
+		}
 
 		this.outerContainerEl = document.querySelector(outerContainerId);
 		this.containerEl = null;
@@ -378,14 +380,15 @@
 			this.canvasCtx.fill();
 			Runner.updateCanvasScaling(this.canvas);
 
-			// Horizon contains clouds, obstacles and the ground.
+			// Horizon contains clouds, obstacles and the ground.var
 			this.horizon = new Horizon(this.canvas, this.spriteDef, this.dimensions,
 				this.config.GAP_COEFFICIENT);
 
 			// Distance meter
 			this.distanceMeter = new DistanceMeter(this.canvas,
 				this.spriteDef.TEXT_SPRITE, this.dimensions.WIDTH);
-			this.distanceMeter.setHighScore(this.highestScore);
+
+			if (this.highestScore) this.distanceMeter.setHighScore(this.highestScore);
 
 			// Draw t-rex
 			this.tRex = new Trex(this.canvas, this.spriteDef.TREX);
@@ -808,8 +811,17 @@
 				this.highestScore = Math.ceil(this.distanceRan);
 				this.distanceMeter.setHighScore(this.highestScore);
 
-				var to_server = this.highestScore * DistanceMeter.COEFFICIENT
 				// todo: Push highscore to server here
+				if (this.username) {
+					var to_server = this.highestScore * DistanceMeter.config.COEFFICIENT,
+						xhr = new XMLHttpRequest();
+
+					xhr.open('GET', '/bukapuasa/' + this.username + '.json?highscore=' + to_server);
+					xhr.onload = function() {
+
+					};
+					xhr.send();
+				}
 			}
 
 			// Reset the time clock.
@@ -859,7 +871,7 @@
 		 * @return {boolean}
 		 */
 		isArcadeMode: function () {
-			return true;
+			return false;
 		},
 
 		/**
@@ -1221,8 +1233,7 @@
 			box.y + adjustment.y,
 			box.width,
 			box.height,
-			box.color
-		);
+			box.color);
 	};
 
 
@@ -1515,7 +1526,7 @@
 					new CollisionBox(1, 7, 13, 19),
 				],
 				[
-					new CollisionBox(0, 2, 31, 20)
+					new CollisionBox(0, 2, 31, 20),
 				],
 				[
 					new CollisionBox(0, 4, 43, 20),
@@ -2072,8 +2083,7 @@
 			this.canvasCtx.drawImage(this.image, sourceX, sourceY,
 				sourceWidth, sourceHeight,
 				targetX, targetY,
-				targetWidth, targetHeight
-			);
+				targetWidth, targetHeight);
 
 			this.canvasCtx.restore();
 		},
@@ -2797,7 +2807,6 @@
 		},
 	};
 })();
-
 
 function onDocumentLoad() {
 	new Runner('.interstitial-wrapper');
