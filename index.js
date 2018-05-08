@@ -1681,7 +1681,7 @@
 	 */
 	Trex.animFrames = {
 		WAITING: {
-			frames: [47, 3],
+			frames: [44, 0],
 			msPerFrame: 1000 / 3,
 		},
 		RUNNING: {
